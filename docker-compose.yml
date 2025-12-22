@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  ocr-service:
+    build: ./services/ocr-service
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./services/ocr-service:/app
+      - ./uploads:/uploads
+    environment:
+      - SERVICE_NAME=ocr-service
+    networks:
+      - microservices-network
+
+  audio-service:
+    build: ./services/audio-service
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./services/audio-service:/app
+      - ./uploads:/uploads
+    environment:
+      - SERVICE_NAME=audio-service
+    networks:
+      - microservices-network
+
+  agent-creator:
+    build: ./services/agent-creator
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./services/agent-creator:/app
+    environment:
+      - SERVICE_NAME=agent-creator
+    networks:
+      - microservices-network
+
+  mcp-creator:
+    build: ./services/mcp-creator
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./services/mcp-creator:/app
+    environment:
+      - SERVICE_NAME=mcp-creator
+    networks:
+      - microservices-network
+
+  whatsapp-service:
+    build: ./services/whatsapp-service
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./services/whatsapp-service:/app
+    environment:
+      - SERVICE_NAME=whatsapp-service
+      - WHATSAPP_API_TOKEN=${WHATSAPP_API_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - WEBHOOK_VERIFY_TOKEN=${WEBHOOK_VERIFY_TOKEN}
+    networks:
+      - microservices-network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_OCR_SERVICE_URL=http://localhost:8001
+      - REACT_APP_AUDIO_SERVICE_URL=http://localhost:8002
+      - REACT_APP_AGENT_CREATOR_URL=http://localhost:8003
+      - REACT_APP_MCP_CREATOR_URL=http://localhost:8004
+      - REACT_APP_WHATSAPP_SERVICE_URL=http://localhost:8005
+    networks:
+      - microservices-network
+    depends_on:
+      - ocr-service
+      - audio-service
+      - agent-creator
+      - mcp-creator
+      - whatsapp-service
+
+networks:
+  microservices-network:
+    driver: bridge
