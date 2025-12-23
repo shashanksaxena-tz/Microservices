@@ -26,7 +26,7 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("WEBHOOK_VERIFY_TOKEN", "verify_token_123")
 WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
 
 # Storage for messages
-MESSAGES_DIR = Path("/uploads/whatsapp")
+MESSAGES_DIR = Path(os.getenv("UPLOAD_DIR", "/uploads")) / "whatsapp"
 MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 messages_log: List[Dict] = []

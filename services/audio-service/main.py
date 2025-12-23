@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Dict, Optional
 import uuid
 from pydub import AudioSegment
+import os
 
 app = FastAPI(title="Audio Transcription Service", description="Audio transcription with highlight generation")
 
@@ -20,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = Path("/uploads/audio")
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/uploads")) / "audio"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Load Whisper model (using base model for balance of speed and accuracy)

@@ -7,6 +7,7 @@ import uuid
 from pathlib import Path
 from datetime import datetime
 from jinja2 import Template
+import os
 
 app = FastAPI(title="MCP Creator Service", description="Model Context Protocol API Creator")
 
@@ -19,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MCP_DIR = Path("/uploads/mcp")
+MCP_DIR = Path(os.getenv("UPLOAD_DIR", "/uploads")) / "mcp"
 MCP_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -191,8 +192,11 @@ async def health_check():
         }
         return type_map.get(field_type.lower(), "str")
     
-    jinja_template = Template(template)
-    jinja_template.globals['python_type'] = python_type_filter
+    # Add filter to environment instead of globals if possible, or use environment
+    from jinja2 import Environment
+    env = Environment()
+    env.filters['python_type'] = python_type_filter
+    jinja_template = env.from_string(template)
     
     return jinja_template.render(
         project_name=project.project_name,
