@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+import sys
+import os
+import subprocess
+import argparse
+from pathlib import Path
+import shutil
+
+# Colors for output
+class Colors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def print_header(msg):
+    print(f"{Colors.HEADER}{Colors.BOLD}{msg}{Colors.ENDC}")
+
+def print_success(msg):
+    print(f"{Colors.OKGREEN}✓ {msg}{Colors.ENDC}")
+
+def print_warning(msg):
+    print(f"{Colors.WARNING}! {msg}{Colors.ENDC}")
+
+def print_error(msg):
+    print(f"{Colors.FAIL}✗ {msg}{Colors.ENDC}")
+
+def get_services():
+    """Get list of services."""
+    services_dir = Path("services")
+    if not services_dir.exists():
+        return []
+    return [d for d in services_dir.iterdir() if d.is_dir()]
+
+def check_service_structure(service_path):
+    """Check if service has Dockerfile and requirements.txt (or package.json)."""
+    dockerfile = service_path / "Dockerfile"
+    reqs = service_path / "requirements.txt"
+    package_json = service_path / "package.json"
+
+    missing = []
+    if not dockerfile.exists():
+        missing.append("Dockerfile")
+
+    # Check for python requirements OR node package.json
+    if not reqs.exists() and not package_json.exists():
+        missing.append("requirements.txt OR package.json")
+
+    return missing
+
+def build_command(args):
+    """Mimic build process and validate services."""
+    print_header("🏗️  Running MCP Build Verification...")
+
+    services = get_services()
+    if not services:
+        print_error("No services found in services/ directory.")
+        return 1
+
+    frontend_dir = Path("frontend")
+    if frontend_dir.exists():
+        services.append(frontend_dir)
+
+    failed = False
+
+    for service in services:
+        name = service.name
+        print(f"\nChecking service: {Colors.OKBLUE}{name}{Colors.ENDC}")
+
+        missing = check_service_structure(service)
+        if missing:
+            print_error(f"Missing files: {', '.join(missing)}")
+            failed = True
+        else:
+            print_success("Structure valid (Dockerfile, requirements.txt/package.json found)")
+
+            # Dry run dependency check for python services
+            if (service / "requirements.txt").exists():
+                print("  Validating requirements.txt...")
+                # We could run pip install --dry-run but that requires newer pip
+                # Instead we just check if it's readable
+                try:
+                    with open(service / "requirements.txt") as f:
+                        lines = f.readlines()
+                        print_success(f"requirements.txt has {len(lines)} lines")
+                except Exception as e:
+                    print_error(f"Failed to read requirements.txt: {e}")
+                    failed = True
+
+            if (service / "package.json").exists():
+                print("  Validating package.json...")
+                try:
+                    import json
+                    with open(service / "package.json") as f:
+                        data = json.load(f)
+                        print_success(f"package.json valid (name: {data.get('name')})")
+                except Exception as e:
+                    print_error(f"Failed to parse package.json: {e}")
+                    failed = True
+
+    if failed:
+        print_header("\n❌ Build Verification Failed")
+        return 1
+    else:
+        print_header("\n✅ Build Verification Passed")
+        print("All services are structured correctly for Docker deployment.")
+        return 0
+
+def test_command(args):
+    """Run tests."""
+    print_header("🧪 Running MCP Tests...")
+
+    tests_dir = Path("tests")
+    if not tests_dir.exists():
+        print_error("tests/ directory not found.")
+        return 1
+
+    # Create a temporary directory for uploads during test collection
+    import tempfile
+
+    # We use a temporary directory that is automatically cleaned up
+    # unless we want to persist it for debugging.
+    # But subprocess needs the path.
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_uploads = Path(temp_dir) / "uploads"
+        test_uploads.mkdir(parents=True, exist_ok=True)
+
+        # Set environment variable for the subprocess
+        env = os.environ.copy()
+        env["UPLOAD_DIR"] = str(test_uploads.absolute())
+
+        # Run pytest
+        cmd = [sys.executable, "-m", "pytest", "tests"]
+        if args.verbose:
+            cmd.append("-v")
+
+        try:
+            result = subprocess.run(cmd, env=env, check=False)
+            if result.returncode == 0:
+                print_header("\n✅ All Tests Passed")
+                return 0
+            else:
+                print_header("\n❌ Tests Failed")
+                return result.returncode
+        except Exception as e:
+            print_error(f"Failed to run tests: {e}")
+            return 1
+
+def main():
+    parser = argparse.ArgumentParser(description="MCP - Microservices Control Platform CLI")
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+
+    # Build command
+    build_parser = subparsers.add_parser("build", help="Verify build structure of services")
+
+    # Test command
+    test_parser = subparsers.add_parser("test", help="Run service tests")
+    test_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+
+    args = parser.parse_args()
+
+    if args.command == "build":
+        sys.exit(build_command(args))
+    elif args.command == "test":
+        sys.exit(test_command(args))
+    else:
+        parser.print_help()
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

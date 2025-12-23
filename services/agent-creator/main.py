@@ -7,6 +7,7 @@ import yaml
 import uuid
 from pathlib import Path
 from datetime import datetime
+import os
 
 app = FastAPI(title="Agent Creator Service", description="Create and manage AI agents")
 
@@ -19,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-AGENTS_DIR = Path("/uploads/agents")
+AGENTS_DIR = Path(os.getenv("UPLOAD_DIR", "/uploads")) / "agents"
 AGENTS_DIR.mkdir(parents=True, exist_ok=True)
 
 

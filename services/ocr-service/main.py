@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from typing import List, Dict
 import uuid
+import os
 
 app = FastAPI(title="OCR Service", description="PDF OCR with text highlighting")
 
@@ -22,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = Path("/uploads/ocr")
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/uploads")) / "ocr"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
