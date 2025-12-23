@@ -194,7 +194,32 @@ The AI-First Microservices Platform is a distributed system built on a microserv
 └─────────────────────────────────────┘
 ```
 
-### 6. Frontend Service (Port 3000)
+### 6. API Gateway Service (Port 8000)
+
+```
+┌─────────────────────────────────────┐
+│         API Gateway Service          │
+├─────────────────────────────────────┤
+│ Technology Stack:                    │
+│ • FastAPI (Web Framework)            │
+│ • httpx (Async HTTP Client)          │
+├─────────────────────────────────────┤
+│ API Endpoints:                       │
+│ /api/ocr/* → OCR Service             │
+│ /api/audio/* → Audio Service         │
+│ /api/agent/* → Agent Creator         │
+│ /api/mcp/* → MCP Creator             │
+│ /api/whatsapp/* → WhatsApp Service   │
+├─────────────────────────────────────┤
+│ Features:                            │
+│ • Unified entry point                │
+│ • API Key Authentication             │
+│ • Request Logging                    │
+│ • Health Checks                      │
+└─────────────────────────────────────┘
+```
+
+### 7. Frontend Service (Port 3000)
 
 ```
 ┌─────────────────────────────────────┐
